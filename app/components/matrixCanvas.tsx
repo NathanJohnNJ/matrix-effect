@@ -130,7 +130,14 @@ export default function MatrixCanvas({
     const logicalSize = syncCanvasSize();
     const currentEffect = new Effect(logicalSize.width, logicalSize.height, settings.columnWidth);
     effectRef.current = currentEffect;
-    gradientRef.current = createGradient(ctx, logicalSize.width, logicalSize.height, settings.gradientColors);
+    gradientRef.current = createGradient(
+      ctx,
+      logicalSize.width,
+      logicalSize.height,
+      settings.gradientColors,
+      settings.gradientAngle,
+      settings.gradientStops,
+    );
     staticArtRef.current = showStaticArt
       ? createStaticArt({
           text: staticText,
@@ -146,7 +153,14 @@ export default function MatrixCanvas({
 
       const nextEffect = new Effect(width, height, settings.columnWidth);
       effectRef.current = nextEffect;
-      gradientRef.current = createGradient(ctx, width, height, settings.gradientColors);
+      gradientRef.current = createGradient(
+        ctx,
+        width,
+        height,
+        settings.gradientColors,
+        settings.gradientAngle,
+        settings.gradientStops,
+      );
       staticArtRef.current = showStaticArt
         ? createStaticArt({
             text: staticText,
@@ -217,7 +231,15 @@ export default function MatrixCanvas({
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [settings.columnWidth, settings.gradientColors, settings.speed, showStaticArt, staticText]);
+  }, [
+    settings.columnWidth,
+    settings.gradientAngle,
+    settings.gradientColors,
+    settings.gradientStops,
+    settings.speed,
+    showStaticArt,
+    staticText,
+  ]);
 
   const homeNavigation = useMemo(
     () => [
