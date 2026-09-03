@@ -8,6 +8,8 @@ import {
   createGradient,
   createStaticArt,
   renderStaticText,
+  beginStaticArtRainOut,
+  isStaticArtGone,
   normalizeColumnWidth,
   type StaticArt,
 } from '../actions';
@@ -32,6 +34,7 @@ export default function MatrixCanvas({
   const rafRef = useRef<number | null>(null);
   const hideNavTimerRef = useRef<number | null>(null);
   const hideInputTimerRef = useRef<number | null>(null);
+  const rainOutTimerRef = useRef(0);
   const [inputValue, setInputValue] = useState('matrix');
   const [staticText, setStaticText] = useState('matrix');
   const [inputVisible, setInputVisible] = useState(false);
@@ -209,15 +212,41 @@ export default function MatrixCanvas({
           : null;
         const wordComplete =
           staticArtRef.current !== null &&
+          staticArtRef.current.phase === 'in' &&
           staticArtRef.current.cells.length > 0 &&
           staticArtRef.current.cells.every((cell) => cell.settled);
+        const currentArt = staticArtRef.current;
         const reducedColumns = wordComplete ? null : occupiedColumns;
         const dimColumns = wordComplete ? occupiedColumns : null;
+
+        if (currentArt && wordComplete && settings.rainOut) {
+          rainOutTimerRef.current += deltaTime;
+          if (rainOutTimerRef.current >= settings.rainOutSpeed * 1000) {
+            beginStaticArtRainOut(currentArt);
+            rainOutTimerRef.current = 0;
+          }
+        } else if (!wordComplete) {
+          rainOutTimerRef.current = 0;
+        }
 
         currentEffect.symbols.forEach((symbol) =>
           symbol.draw(currentContext, reducedColumns, dimColumns),
         );
-        renderStaticText(currentContext, staticArtRef.current, gradientRef.current);
+        renderStaticText(currentContext, currentArt, gradientRef.current);
+
+        if (currentArt && isStaticArtGone(currentArt)) {
+          if (settings.loopAnimation && settings.rainOut) {
+            staticArtRef.current = createStaticArt({
+              text: staticText,
+              effect: currentEffect,
+              canvasWidth: logicalWidth,
+              canvasHeight: logicalHeight,
+              columnWidth,
+            });
+          } else {
+            currentArt.phase = 'gone';
+          }
+        }
         timerRef.current = 0;
       } else {
         timerRef.current += deltaTime;
@@ -239,6 +268,9 @@ export default function MatrixCanvas({
     settings.gradientAngle,
     settings.gradientColors,
     settings.gradientStops,
+    settings.loopAnimation,
+    settings.rainOut,
+    settings.rainOutSpeed,
     settings.speed,
     showStaticArt,
     staticText,
