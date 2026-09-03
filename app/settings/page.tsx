@@ -4,15 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRightIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ColorSelector from '../components/colorSelector';
-import { characters, createGradient, normalizeGradientAngle, Symbol as MatrixSymbol } from '../actions';
+import { characters, createGradient, normalizeColumnWidth, normalizeGradientAngle, Symbol as MatrixSymbol } from '../actions';
 import { useSettings } from '../providers';
-
-const MIN_COLUMN_WIDTH = 1;
-const MAX_COLUMN_WIDTH = 8;
-
-const clampColumnWidth = (value: number) => Number.isFinite(value)
-  ? Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, Math.round(value)))
-  : MIN_COLUMN_WIDTH;
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
@@ -22,7 +15,7 @@ export default function SettingsPage() {
     String(settings.gradientAngle),
   );
   const [previewGlyphs, setPreviewGlyphs] = useState(() => Array.from(
-    { length: clampColumnWidth(settings.columnWidth) },
+    { length: normalizeColumnWidth(settings.columnWidth) },
     (_, index) => characters[index % characters.length],
   ).join(''));
 
@@ -32,7 +25,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setPreviewGlyphs(Array.from(
-      { length: clampColumnWidth(settings.columnWidth) },
+      { length: normalizeColumnWidth(settings.columnWidth) },
       () => characters[Math.floor(Math.random() * characters.length)],
     ).join(''));
   }, [settings.columnWidth]);
@@ -375,12 +368,12 @@ export default function SettingsPage() {
               </span>
             </div>
             <label className="block text-sm text-zinc-300">
-              <span className="mb-2 block">Glyphs: <input type="text" min={MIN_COLUMN_WIDTH} max={MAX_COLUMN_WIDTH} value={settings.columnWidth} 
+              <span className="mb-2 block">Glyphs: <input type="text" min={1} max={8} value={settings.columnWidth} 
                 className="rounded-2xl border-zinc-300 border py-1.5 px-2 max-w-12 text-right focus:font-extrabold"
                 onChange={(event) =>
                   setSettings((current) => ({
                     ...current,
-                    columnWidth: clampColumnWidth(Number(event.target.value)),
+                    columnWidth: normalizeColumnWidth(Number(event.target.value)),
                   }))
                 } /></span>
               <input

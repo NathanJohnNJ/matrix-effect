@@ -16,6 +16,10 @@ export function normalizeGradientAngle(value: number) {
   return Number.isFinite(value) ? Math.min(360, Math.max(-360, value)) : 0;
 }
 
+export function normalizeColumnWidth(value: number) {
+  return Number.isFinite(value) ? Math.min(8, Math.max(1, Math.round(value))) : 1;
+}
+
 export function createEvenlySpacedStops(colorCount: number) {
   return Array.from(
     { length: colorCount },

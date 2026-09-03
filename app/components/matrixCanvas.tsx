@@ -7,6 +7,7 @@ import {
   createGradient,
   createStaticArt,
   renderStaticText,
+  normalizeColumnWidth,
   type StaticArt,
 } from '../actions';
 import { useSettings } from '../providers';
@@ -128,7 +129,8 @@ export default function MatrixCanvas({
     };
 
     const logicalSize = syncCanvasSize();
-    const currentEffect = new Effect(logicalSize.width, logicalSize.height, settings.columnWidth);
+    const columnWidth = normalizeColumnWidth(settings.columnWidth);
+    const currentEffect = new Effect(logicalSize.width, logicalSize.height, columnWidth);
     effectRef.current = currentEffect;
     gradientRef.current = createGradient(
       ctx,
@@ -144,14 +146,14 @@ export default function MatrixCanvas({
           effect: currentEffect,
           canvasWidth: logicalSize.width,
           canvasHeight: logicalSize.height,
-          columnWidth: settings.columnWidth,
+          columnWidth,
         })
       : null;
 
     const resizeCanvas = () => {
       const { width, height } = syncCanvasSize();
 
-      const nextEffect = new Effect(width, height, settings.columnWidth);
+      const nextEffect = new Effect(width, height, columnWidth);
       effectRef.current = nextEffect;
       gradientRef.current = createGradient(
         ctx,
@@ -167,7 +169,7 @@ export default function MatrixCanvas({
             effect: nextEffect,
             canvasWidth: width,
             canvasHeight: height,
-            columnWidth: settings.columnWidth,
+            columnWidth,
           })
         : null;
     };
