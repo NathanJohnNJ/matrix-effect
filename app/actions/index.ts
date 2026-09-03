@@ -6,8 +6,11 @@ export type MatrixSettings = {
   columnWidth: number;
   inputHideSpeed: number;
   navHideSpeed: number;
+  rainOutSpeed: number;
   hideHeader: boolean;
   hideInput: boolean;
+  rainOut: boolean;
+  loopAnimation: boolean;
 };
 
 export const MATRIX_SETTINGS_STORAGE_KEY = 'matrix-effect-settings';
@@ -35,8 +38,11 @@ export const DEFAULT_MATRIX_SETTINGS: MatrixSettings = {
   columnWidth: 3,
   inputHideSpeed: 3,
   navHideSpeed: 3,
+  rainOutSpeed: 3,
   hideHeader: true,
-  hideInput: true
+  hideInput: true,
+  rainOut: false,
+  loopAnimation: false,
 };
 
 export type StaticCell = {
@@ -47,7 +53,9 @@ export type StaticCell = {
   character: string;
   settled: boolean;
   active: boolean;
+  removed: boolean;
   startFrame?: number;
+  outStartFrame?: number;
   nextCell: StaticCell | null;
 };
 
@@ -55,6 +63,9 @@ export type StaticArt = {
   cells: StaticCell[];
   occupiedColumns: Set<number>;
   frame: number;
+  canvasHeight: number;
+  phase: 'in' | 'out' | 'gone';
+  animationDuration: number;
 };
 
 export const characters = '0123456789アァカタナハマヤャ/|[]!@£$&*()ラワイィキシチニヒミリビピウゥクスツヌフムユュルグズブヅプエケセテネヘメレヱデベペオォコソトモヨロヲゴゾッンABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -258,57 +269,69 @@ export function createStaticArt({
   canvasHeight: number;
   columnWidth?: number;
 }): StaticArt {
-  const visibleText = text.toUpperCase().split('');
+  const visibleLines = text.toUpperCase().split('\n').filter(Boolean);
   const blockSize = Math.max(1, Number.isFinite(columnWidth) ? columnWidth : DEFAULT_MATRIX_SETTINGS.columnWidth);
   const glyphWidth = 5 * blockSize;
   const letterGap = blockSize;
-  const totalWidth =
-    visibleText.length * glyphWidth + Math.max(0, visibleText.length - 1) * letterGap;
+  const lineWidths = visibleLines.map(
+    (line) => line.length * glyphWidth + Math.max(0, line.length - 1) * letterGap,
+  );
+  const totalWidth = Math.max(0, ...lineWidths);
+  const totalHeight = visibleLines.length * 7 * blockSize
+    + Math.max(0, visibleLines.length - 1) * blockSize;
   const fontSize = Math.min(
     effect.baseFontSize,
     canvasWidth * 0.9 / Math.max(1, totalWidth),
-    canvasHeight * 0.8 / (7 * blockSize),
+    canvasHeight * 0.8 / Math.max(1, totalHeight),
   );
 
   effect.setFontSize(fontSize);
 
-  const startColumn = (canvasWidth / fontSize - totalWidth) / 2;
-  const startRow = (canvasHeight / fontSize - 7 * blockSize) / 2;
+  const startRow = (canvasHeight / fontSize - totalHeight) / 2;
   const cells: StaticCell[] = [];
   const occupiedColumns = new Set<number>();
 
-  visibleText.forEach((character, characterIndex) => {
-    const glyph = asciiGlyphs[character] || fallbackGlyph;
-    const characterStart = startColumn + characterIndex * (glyphWidth + letterGap);
+  visibleLines.forEach((line, lineIndex) => {
+    const lineWidth = lineWidths[lineIndex];
+    const startColumn = (canvasWidth / fontSize - lineWidth) / 2;
+    const lineStartRow = startRow + lineIndex * (7 * blockSize + blockSize);
 
-    glyph.forEach((row, rowIndex) => {
-      row.split('').forEach((pixel, columnIndex) => {
-        if (pixel !== '1') {
-          return;
-        }
+    line.split('').forEach((character, characterIndex) => {
+      const glyph = asciiGlyphs[character] || fallbackGlyph;
+      const characterStart = startColumn + characterIndex * (glyphWidth + letterGap);
 
-        for (let blockRow = 0; blockRow < blockSize; blockRow += 1) {
-          for (let blockColumn = 0; blockColumn < blockSize; blockColumn += 1) {
-            const cell: StaticCell = {
-              x: characterStart + columnIndex * blockSize + blockColumn,
-              targetY: startRow + rowIndex * blockSize + blockRow,
-              y: -1,
-              fontSize,
-              character: characters.charAt(Math.floor(Math.random() * characters.length)),
-              settled: false,
-              active: false,
-              nextCell: null,
-            };
-
-            cells.push(cell);
-            occupiedColumns.add(Math.round((cell.x * cell.fontSize) / effect.fontSize));
+      glyph.forEach((row, rowIndex) => {
+        row.split('').forEach((pixel, columnIndex) => {
+          if (pixel !== '1') {
+            return;
           }
-        }
+
+          for (let blockRow = 0; blockRow < blockSize; blockRow += 1) {
+            for (let blockColumn = 0; blockColumn < blockSize; blockColumn += 1) {
+              const cell: StaticCell = {
+                x: characterStart + columnIndex * blockSize + blockColumn,
+                targetY: lineStartRow + rowIndex * blockSize + blockRow,
+                y: -1,
+                fontSize,
+                character: characters.charAt(Math.floor(Math.random() * characters.length)),
+                settled: false,
+                active: false,
+                removed: false,
+                startFrame: undefined,
+                outStartFrame: undefined,
+                nextCell: null,
+              };
+              cells.push(cell);
+              occupiedColumns.add(Math.round((cell.x * cell.fontSize) / effect.fontSize));
+            }
+          }
+        });
       });
     });
   });
 
   const cellsByColumn = new Map<number, StaticCell[]>();
+  let animationDuration = 0;
   cells.forEach((cell) => {
     const column = Math.round((cell.x * cell.fontSize) / effect.fontSize);
     if (!cellsByColumn.has(column)) {
@@ -321,12 +344,50 @@ export function createStaticArt({
     columnCells.sort(() => Math.random() - 0.5);
     columnCells[0].active = true;
     columnCells[0].startFrame = Math.floor(Math.random() * 10);
+    let columnDuration = columnCells[0].startFrame + columnCells[0].targetY + 1;
     columnCells.forEach((cell, cellIndex) => {
       cell.nextCell = columnCells[cellIndex + 1] || null;
+      if (cellIndex > 0) {
+        columnDuration += cell.targetY + 1;
+      }
     });
+    animationDuration = Math.max(animationDuration, columnDuration);
   });
 
-  return { cells, occupiedColumns, frame: 0 };
+  return {
+    cells,
+    occupiedColumns,
+    frame: 0,
+    canvasHeight,
+    phase: 'in',
+    animationDuration,
+  };
+}
+
+export function beginStaticArtRainOut(staticArt: StaticArt) {
+  staticArt.phase = 'out';
+  staticArt.frame = 0;
+
+  const shuffledCells = [...staticArt.cells].sort(() => Math.random() - 0.5);
+  const maximumFallFrames = Math.max(
+    ...staticArt.cells.map((cell) => Math.ceil(staticArt.canvasHeight / cell.fontSize) - cell.y),
+  );
+  const releaseWindow = Math.max(0, staticArt.animationDuration - maximumFallFrames);
+
+  shuffledCells.forEach((cell, index) => {
+    const evenlySpacedFrame = Math.floor(
+      (index / Math.max(1, shuffledCells.length - 1)) * releaseWindow,
+    );
+    cell.outStartFrame = Math.min(
+      releaseWindow,
+      evenlySpacedFrame + Math.floor(Math.random() * 4),
+    );
+    cell.removed = false;
+  });
+}
+
+export function isStaticArtGone(staticArt: StaticArt) {
+  return staticArt.phase === 'out' && staticArt.cells.every((cell) => cell.removed);
 }
 
 export function renderStaticText(
@@ -344,6 +405,29 @@ export function renderStaticText(
   staticArt.frame += 1;
 
   staticArt.cells.forEach((cell) => {
+    if (staticArt.phase === 'gone' || cell.removed) {
+      return;
+    }
+
+    if (staticArt.phase === 'out') {
+      if (staticArt.frame < (cell.outStartFrame ?? 0)) {
+        context.font = `${cell.fontSize}px monospace`;
+        context.fillText(cell.character, cell.x * cell.fontSize, (cell.y + 1) * cell.fontSize);
+        return;
+      }
+
+      cell.y += 1;
+      if (cell.y * cell.fontSize > staticArt.canvasHeight) {
+        cell.removed = true;
+        return;
+      }
+
+      cell.character = characters.charAt(Math.floor(Math.random() * characters.length));
+      context.font = `${cell.fontSize}px monospace`;
+      context.fillText(cell.character, cell.x * cell.fontSize, (cell.y + 1) * cell.fontSize);
+      return;
+    }
+
     if (!cell.settled && (!cell.active || staticArt.frame < (cell.startFrame ?? 0))) {
       return;
     }

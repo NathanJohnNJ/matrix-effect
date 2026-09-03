@@ -236,6 +236,71 @@ export default function SettingsPage() {
           </section>
 
           <section className="rounded-xl border border-white/10 bg-black/30 p-4">
+            <h2 className="text-lg font-semibold text-white">
+              Rain out?
+              <label className="inline ms-2 rounded-lg">
+                <input
+                  type="checkbox"
+                  checked={settings.rainOut}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      rainOut: event.target.checked,
+                    }))}
+                  className="cursor-pointer rounded-lg border border-zinc-300 bg-transparent"
+                />
+              </label>
+            </h2>
+            
+            {settings.rainOut && (
+                <>
+                  <p className="mb-4 text-sm">(with this setting enabled, ASCII art will start to rain out after being completed and remaining complete for the amount of seconds below)</p>
+                  <h2 className="text-lg font-semibold text-white">
+                    Loop animation?
+                    <label className="inline ms-2 rounded-lg">
+                      <input
+                        type="checkbox"
+                        checked={settings.loopAnimation}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            loopAnimation: event.target.checked,
+                          }))}
+                        className="cursor-pointer rounded-lg border border-zinc-300 bg-transparent"
+                      />
+                    </label>
+                  </h2>
+                  <p className="mb-4 font-normal text-sm">(with this setting enabled, once the ASCII art has completely rained out, it will start forming again)</p>
+                </>
+              
+            )}
+            {settings.rainOut && (
+              <label className="mt-4 block text-sm text-zinc-300">
+                <span className="mb-2 block">Seconds: <input type="text" min={0} max={30} value={settings.rainOutSpeed}
+                  className="max-w-12 rounded-2xl border border-zinc-300 px-2 py-1.5 text-right text-zinc-300 focus:font-extrabold"
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      rainOutSpeed: Number(event.target.value),
+                    }))}
+                /></span>
+                <input
+                  type="range"
+                  min={0}
+                  max={30}
+                  value={settings.rainOutSpeed}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      rainOutSpeed: Number(event.target.value),
+                    }))}
+                  className="w-full accent-green-400"
+                />
+              </label>
+            )}
+          </section>
+
+          <section className="rounded-xl border border-white/10 bg-black/30 p-4">
             <div className="mb-4 flex items-center gap-3">
               <h2 className="text-lg font-semibold text-white">Gradient colors</h2>
               <div className="relative h-7 min-w-32 flex-1 overflow-visible rounded-md border border-white/20" style={{
