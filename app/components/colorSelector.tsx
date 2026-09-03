@@ -15,7 +15,13 @@ export default function ColorSelector({color, index, settings, setSettings}: Rea
     e.preventDefault()
     const nextColors = [...settings.gradientColors];
     nextColors.splice(index, 1);
-    setSettings((current: string[]) => ({ ...current, gradientColors: nextColors }));
+    const nextStops = [...settings.gradientStops];
+    nextStops.splice(index, 1);
+    setSettings((current: string[]) => ({
+      ...current,
+      gradientColors: nextColors,
+      gradientStops: nextStops,
+    }));
   };
 
   return (

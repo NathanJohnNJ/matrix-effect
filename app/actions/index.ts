@@ -1,5 +1,7 @@
 export type MatrixSettings = {
   gradientColors: string[];
+  gradientStops: number[];
+  gradientAngle: number;
   speed: number;
   columnWidth: number;
   inputHideSpeed: number;
@@ -12,6 +14,8 @@ export const MATRIX_SETTINGS_STORAGE_KEY = 'matrix-effect-settings';
 
 export const DEFAULT_MATRIX_SETTINGS: MatrixSettings = {
   gradientColors: ['#fff200', '#ff7f00', '#ff0000', '#ffb3de', '#00ffff', '#00ff00'],
+  gradientStops: [0, 0.2, 0.4, 0.6, 0.8, 1],
+  gradientAngle: 0,
   speed: 10,
   columnWidth: 3,
   inputHideSpeed: 3,
@@ -139,12 +143,25 @@ export function createGradient(
   width: number,
   height: number,
   colors: string[] = DEFAULT_MATRIX_SETTINGS.gradientColors,
+  angle = DEFAULT_MATRIX_SETTINGS.gradientAngle,
+  colorStops: number[] = DEFAULT_MATRIX_SETTINGS.gradientStops,
 ) {
-  const gradient = context.createLinearGradient(0, 0, width, height);
+  const diagonal = Math.hypot(width, height);
+  const rotatedAngle = (angle * Math.PI) / 180;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const offsetX = Math.cos(rotatedAngle) * diagonal / 2;
+  const offsetY = Math.sin(rotatedAngle) * diagonal / 2;
+  const gradient = context.createLinearGradient(
+    centerX - offsetX,
+    centerY - offsetY,
+    centerX + offsetX,
+    centerY + offsetY,
+  );
   const stops = colors.length > 0 ? colors : DEFAULT_MATRIX_SETTINGS.gradientColors;
 
   stops.forEach((color, index) => {
-    const stop = stops.length > 1 ? index / (stops.length - 1) : 0;
+    const stop = colorStops[index] ?? (stops.length > 1 ? index / (stops.length - 1) : 0);
     gradient.addColorStop(stop, color);
   });
 

@@ -29,6 +29,10 @@ export default function Providers({ children }: { children: ReactNode }) {
           gradientColors: parsed.gradientColors?.length
             ? parsed.gradientColors
             : DEFAULT_MATRIX_SETTINGS.gradientColors,
+          gradientStops: parsed.gradientStops && parsed.gradientColors
+            && parsed.gradientStops.length === parsed.gradientColors.length
+            ? parsed.gradientStops
+            : DEFAULT_MATRIX_SETTINGS.gradientStops,
         });
       } catch {
         setSettings(DEFAULT_MATRIX_SETTINGS);
