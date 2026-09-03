@@ -4,6 +4,7 @@ import {
   createEvenlySpacedStops,
   DEFAULT_MATRIX_SETTINGS,
   MATRIX_SETTINGS_STORAGE_KEY,
+  normalizeColumnWidth,
   normalizeGradientAngle,
   type MatrixSettings,
 } from './actions';
@@ -32,6 +33,9 @@ export default function Providers({ children }: { children: ReactNode }) {
           ...DEFAULT_MATRIX_SETTINGS,
           ...parsed,
           gradientColors,
+          columnWidth: normalizeColumnWidth(
+            parsed.columnWidth ?? DEFAULT_MATRIX_SETTINGS.columnWidth,
+          ),
           gradientAngle: normalizeGradientAngle(
             parsed.gradientAngle ?? DEFAULT_MATRIX_SETTINGS.gradientAngle,
           ),
