@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import InputForm from './inputForm';
+import NavBar from './navbar';
 import {
   Effect,
   createGradient,
@@ -243,35 +244,9 @@ export default function MatrixCanvas({
     staticText,
   ]);
 
-  const homeNavigation = useMemo(
-    () => [
-      { href: '/', label: 'Home' },
-      { href: '/rain', label: 'Rain' },
-      { href: '/dashboard', label: 'Dashboard' },
-      { href: '/settings', label: 'Settings' },
-    ],
-    [],
-  );
-
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black">
-      <nav
-        className={`absolute left-5 top-3.75 z-20 flex items-center gap-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-sm transition-all duration-300 ${
-          headerVisible
-            ? 'translate-y-0 opacity-100'
-            : '-translate-y-4 opacity-0 pointer-events-none'
-        }`}
-      >
-        {homeNavigation.map((item) => (
-          <a
-            key={item.label}
-            href={item.href}
-            className="rounded-lg px-2 py-1 text-xs uppercase tracking-[0.2em] text-green-200 transition hover:text-white"
-          >
-            {item.label}
-          </a>
-        ))}
-      </nav>
+      <NavBar headerVisible={headerVisible} />
       {showInput && (
         <InputForm
           visible={inputVisible}
