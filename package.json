@@ -1,0 +1,32 @@
+{
+  "name": "matrix-effect",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "agent-browser": "^0.35.2",
+    "next": "^16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^10.9.1",
+    "eslint-config-next": "^16.3.4",
+    "tailwindcss": "^4",
+    "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true,
+    "agent-browser@0.35.2": true
+  }
+}
