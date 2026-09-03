@@ -12,9 +12,20 @@ export type MatrixSettings = {
 
 export const MATRIX_SETTINGS_STORAGE_KEY = 'matrix-effect-settings';
 
+export function normalizeGradientAngle(value: number) {
+  return Number.isFinite(value) ? Math.min(360, Math.max(-360, value)) : 0;
+}
+
+export function createEvenlySpacedStops(colorCount: number) {
+  return Array.from(
+    { length: colorCount },
+    (_, index) => colorCount > 1 ? index / (colorCount - 1) : 0,
+  );
+}
+
 export const DEFAULT_MATRIX_SETTINGS: MatrixSettings = {
   gradientColors: ['#fff200', '#ff7f00', '#ff0000', '#ffb3de', '#00ffff', '#00ff00'],
-  gradientStops: [0, 0.2, 0.4, 0.6, 0.8, 1],
+  gradientStops: createEvenlySpacedStops(6),
   gradientAngle: 0,
   speed: 10,
   columnWidth: 3,
@@ -147,7 +158,7 @@ export function createGradient(
   colorStops: number[] = DEFAULT_MATRIX_SETTINGS.gradientStops,
 ) {
   const diagonal = Math.hypot(width, height);
-  const rotatedAngle = (angle * Math.PI) / 180;
+  const rotatedAngle = (normalizeGradientAngle(angle) * Math.PI) / 180;
   const centerX = width / 2;
   const centerY = height / 2;
   const offsetX = Math.cos(rotatedAngle) * diagonal / 2;

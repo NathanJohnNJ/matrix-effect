@@ -1,8 +1,10 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import {
+  createEvenlySpacedStops,
   DEFAULT_MATRIX_SETTINGS,
   MATRIX_SETTINGS_STORAGE_KEY,
+  normalizeGradientAngle,
   type MatrixSettings,
 } from './actions';
 
@@ -23,16 +25,20 @@ export default function Providers({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Partial<MatrixSettings>;
+        const gradientColors = parsed.gradientColors?.length
+          ? parsed.gradientColors
+          : DEFAULT_MATRIX_SETTINGS.gradientColors;
         setSettings({
           ...DEFAULT_MATRIX_SETTINGS,
           ...parsed,
-          gradientColors: parsed.gradientColors?.length
-            ? parsed.gradientColors
-            : DEFAULT_MATRIX_SETTINGS.gradientColors,
+          gradientColors,
+          gradientAngle: normalizeGradientAngle(
+            parsed.gradientAngle ?? DEFAULT_MATRIX_SETTINGS.gradientAngle,
+          ),
           gradientStops: parsed.gradientStops && parsed.gradientColors
             && parsed.gradientStops.length === parsed.gradientColors.length
             ? parsed.gradientStops
-            : DEFAULT_MATRIX_SETTINGS.gradientStops,
+            : createEvenlySpacedStops(gradientColors.length),
         });
       } catch {
         setSettings(DEFAULT_MATRIX_SETTINGS);
