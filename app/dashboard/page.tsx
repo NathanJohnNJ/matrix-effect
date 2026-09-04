@@ -11,7 +11,7 @@ const effects = [
   {
     href: '/rain',
     title: 'Rain',
-    description: 'Watch the unbroken stream of falling symbols.',
+    description: 'Watch an unbroken stream of falling symbols.',
     gif: '/rain.gif',
   },
 ];
@@ -27,7 +27,7 @@ export default function DashboardPage() {
             <p className="mt-3 max-w-xl text-zinc-400">Explore the interactive canvas or let the symbols fall uninterrupted.</p>
           </div>
           <Link
-            href="/settings"
+            href="/settings?from=%2F"
             className="shrink-0 rounded-xl border border-green-400/40 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-200 transition hover:bg-green-500/20"
           >
             Settings
