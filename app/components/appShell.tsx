@@ -56,12 +56,19 @@ function CanvasLayer({
   onReset: () => void;
 }) {
   const searchParams = useSearchParams();
-  const initialText = isAsciiGenerator
+  const queryText = isAsciiGenerator
     ? ['string', 'string2', 'string3']
       .map((key) => searchParams.get(key)?.trim() ?? '')
       .filter(Boolean)
       .join('\n') || 'matrix'
     : 'matrix';
+  const [initialText, setInitialText] = useState(queryText);
+
+  useEffect(() => {
+    if (isAsciiGenerator) {
+      setInitialText(queryText);
+    }
+  }, [isAsciiGenerator, queryText]);
   const settingsOverride = parseSettingsSearchParams(searchParams);
   const effectiveColumnWidth = settingsOverride.columnWidth ?? columnWidth;
 

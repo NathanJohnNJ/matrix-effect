@@ -149,7 +149,17 @@ export default function SettingsPage() {
             type="button"
             aria-label="Close settings"
             title="Close settings"
-            onClick={() => router.back()}
+            onClick={() => {
+              const returnTo = new URLSearchParams(window.location.search).get('from');
+              const isInAppEffect = returnTo?.startsWith('/rain')
+                || returnTo?.startsWith('/ascii-generator');
+
+              if (isInAppEffect) {
+                router.back();
+              } else {
+                router.replace('/ascii-generator');
+              }
+            }}
             className="rounded-xl border border-green-400/40 bg-green-500/10 p-2 text-green-200 transition hover:bg-green-500/20"
           >
             <XMarkIcon className="h-5 w-5" />
@@ -263,56 +273,54 @@ export default function SettingsPage() {
               </label>
             </h2>
             
+            
             {settings.rainOut && (
-                <>
-                  <p className="mb-4 text-sm">(with this setting enabled, ASCII art will start to rain out after being completed and remaining complete for the amount of seconds below)</p>
-                  <h2 className="text-lg font-semibold text-white">
-                    Loop animation?
-                    <label className="inline ms-2 rounded-lg">
-                      <input
-                        type="checkbox"
-                        checked={settings.loopAnimation}
-                        onChange={(event) =>
-                          setSettings((current) => ({
-                            ...current,
-                            loopAnimation: event.target.checked,
-                          }))}
-                        className="cursor-pointer rounded-lg border border-zinc-300 bg-transparent"
-                      />
-                    </label>
-                  </h2>
-                  <p className="mb-4 font-normal text-sm">(with this setting enabled, once the ASCII art has completely rained out, it will start forming again)</p>
-                </>
-              
-            )}
-            {settings.rainOut && (
-              <label className="mt-4 block text-sm text-zinc-300">
-                <span className="mb-2 block">Seconds: <input type="number" min={0} max={30} value={rainOutSpeedInput}
-                  className="max-w-12 rounded-2xl border border-zinc-300 px-2 py-1.5 text-right text-zinc-300 focus:font-extrabold"
-                  onChange={(event) => setRainOutSpeedInput(event.target.value)}
-                  onBlur={() => {
-                    const nextValue = Number(rainOutSpeedInput);
-                    const normalizedValue = normalizeRainOutSpeed(nextValue);
-                    setRainOutSpeedInput(String(normalizedValue));
-                    setSettings((current) => ({
-                      ...current,
-                      rainOutSpeed: normalizedValue,
-                    }));
-                  }}
-                /></span>
-                <input
-                  type="range"
-                  min={0}
-                  max={30}
-                  value={settings.rainOutSpeed}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      rainOutSpeed: Number(event.target.value),
-                    }))}
-                  className="w-full accent-green-400"
-                />
-              </label>
+              <>
+              <p className="mb-4 text-sm">(with this setting enabled, ASCII art will start to rain out after being completed and remaining complete for the amount of seconds below)</p>
+                <label className="mt-4 block text-sm text-zinc-300">
+                  <span className="mb-2 block">Seconds: <input type="text" min={0} max={30} value={rainOutSpeedInput}
+                    className="max-w-12 rounded-2xl border border-zinc-300 px-2 py-1.5 text-right text-zinc-300 focus:font-extrabold"
+                    onChange={(event) => setRainOutSpeedInput(event.target.value)}
+                    onBlur={() => {
+                      const nextValue = Number(rainOutSpeedInput);
+                      const normalizedValue = normalizeRainOutSpeed(nextValue);
+                      setRainOutSpeedInput(String(normalizedValue));
+                      setSettings((current) => ({
+                        ...current,
+                        rainOutSpeed: normalizedValue,
+                      }));
+                    }}
+                  /></span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={30}
+                    value={settings.rainOutSpeed}
+                    onChange={(event) =>
+                      setSettings((current) => ({
+                        ...current,
+                        rainOutSpeed: Number(event.target.value),
+                      }))}
+                    className="w-full accent-green-400"
+                  />
+                </label>
+                <h2 className="text-lg font-semibold text-white">
+                  Loop animation?
+                  <label className="inline ms-2 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={settings.loopAnimation}
+                      onChange={(event) =>
+                        setSettings((current) => ({
+                          ...current,
+                          loopAnimation: event.target.checked,
+                        }))}
+                      className="cursor-pointer rounded-lg border border-zinc-300 bg-transparent"
+                    />
+                  </label>
+                </h2>
+                <p className="mb-4 font-normal text-sm">(with this setting enabled, once the ASCII art has completely rained out, it will start forming again)</p>
+              </>
             )}
           </section>
 

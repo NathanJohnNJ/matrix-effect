@@ -1,5 +1,5 @@
 'use client';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import React, { useMemo } from 'react';
 import { clsx } from 'clsx';
@@ -12,6 +12,7 @@ type NavBarProps = {
 
 export default function NavBar({ headerVisible, onReset }: NavBarProps){
   const pathName = usePathname();
+  const searchParams = useSearchParams();
 
   const homeNavigation = useMemo(
     () => [
@@ -34,7 +35,9 @@ export default function NavBar({ headerVisible, onReset }: NavBarProps){
     {homeNavigation.map((item) => (
         <Link
         key={item.label}
-        href={item.href}
+        href={item.href === '/settings'
+          ? `/settings?from=${encodeURIComponent(`${pathName}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`)}`
+          : item.href}
         className={clsx("rounded-lg px-2 py-1 text-xs uppercase tracking-[0.2em] text-green-200 transition hover:text-white", {
           "text-white font-extrabold" : pathName === item.href
         })}
