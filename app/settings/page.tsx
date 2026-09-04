@@ -151,14 +151,23 @@ export default function SettingsPage() {
             title="Close settings"
             onClick={() => {
               const returnTo = new URLSearchParams(window.location.search).get('from');
-              const isInAppEffect = returnTo?.startsWith('/rain')
-                || returnTo?.startsWith('/ascii-generator');
+              let destination = '/ascii-generator';
 
-              if (isInAppEffect) {
-                router.back();
-              } else {
-                router.replace('/ascii-generator');
+              if (returnTo) {
+                try {
+                  const returnUrl = new URL(returnTo, window.location.origin);
+                  const allowedPaths = ['/', '/dashboard', '/rain', '/ascii-generator'];
+                  const isAllowedPath = allowedPaths.includes(returnUrl.pathname);
+
+                  if (returnUrl.origin === window.location.origin && isAllowedPath) {
+                    destination = `${returnUrl.pathname}${returnUrl.search}`;
+                  }
+                } catch {
+                  destination = '/ascii-generator';
+                }
               }
+
+              router.replace(destination);
             }}
             className="rounded-xl border border-green-400/40 bg-green-500/10 p-2 text-green-200 transition hover:bg-green-500/20"
           >
