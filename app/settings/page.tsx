@@ -1,18 +1,22 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRightIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import ColorSelector from '../components/colorSelector';
-import { characters, createGradient, normalizeColumnWidth, normalizeGradientAngle, Symbol as MatrixSymbol } from '../actions';
+import { characters, createGradient, normalizeColumnWidth, normalizeGradientAngle, normalizeRainOutSpeed, Symbol as MatrixSymbol } from '../actions';
 import { useSettings } from '../providers';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
+  const router = useRouter();
   const [showNewColor, setShowNewColor] = useState(false);
   const speedPreviewRef = useRef<HTMLCanvasElement | null>(null);
   const [gradientAngleInput, setGradientAngleInput] = useState(
     String(settings.gradientAngle),
+  );
+  const [rainOutSpeedInput, setRainOutSpeedInput] = useState(
+    String(settings.rainOutSpeed),
   );
   const [previewGlyphs, setPreviewGlyphs] = useState(() => Array.from(
     { length: normalizeColumnWidth(settings.columnWidth) },
@@ -22,6 +26,10 @@ export default function SettingsPage() {
   useEffect(() => {
     setGradientAngleInput(String(settings.gradientAngle));
   }, [settings.gradientAngle]);
+
+  useEffect(() => {
+    setRainOutSpeedInput(String(settings.rainOutSpeed));
+  }, [settings.rainOutSpeed]);
 
   useEffect(() => {
     setPreviewGlyphs(Array.from(
@@ -130,19 +138,22 @@ export default function SettingsPage() {
   }, [settings.gradientAngle, settings.gradientColors, settings.gradientStops, settings.speed]);
 
   return (
-    <main className="min-h-screen bg-black px-6 py-12 text-zinc-100">
+    <main className="min-h-screen bg-black/70 px-6 py-12 text-zinc-100">
       <div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-green-500/10 backdrop-blur-sm">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-green-300">Matrix effect</p>
             <h1 className="mt-2 text-3xl font-bold text-white">Settings</h1>
           </div>
-          <Link
-            href="/"
-            className="rounded-xl border border-green-400/40 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-200 transition hover:bg-green-500/20"
+          <button
+            type="button"
+            aria-label="Close settings"
+            title="Close settings"
+            onClick={() => router.back()}
+            className="rounded-xl border border-green-400/40 bg-green-500/10 p-2 text-green-200 transition hover:bg-green-500/20"
           >
-            Back home
-          </Link>
+            <XMarkIcon className="h-5 w-5" />
+          </button>
         </div>
 
         
@@ -151,16 +162,16 @@ export default function SettingsPage() {
             <h2 className="text-lg font-semibold text-white">Hide nav bar? <label className="inline ms-2 rounded-lg">
                 <input
                   type="checkbox"
-                  checked={settings.hideHeader}
+                  checked={settings.hideNav}
                   onChange={(event) =>
                     setSettings((current) => ({
                       ...current,
-                      hideHeader: event.target.checked,
+                      hideNav: event.target.checked,
                     }))}
                   className="cursor-pointer rounded-lg border border-zinc-300 bg-transparent"
                 />
               </label></h2>
-              { settings.hideHeader && 
+              { settings.hideNav &&
               <>
                 <p className="mb-4 text-sm">(with this setting enabled, the nav bar will auto hide after the amount of seconds chosen below. Uncheck to have the nav bar visible at all times)</p>
                 <label className="block text-sm text-zinc-300">
@@ -276,13 +287,18 @@ export default function SettingsPage() {
             )}
             {settings.rainOut && (
               <label className="mt-4 block text-sm text-zinc-300">
-                <span className="mb-2 block">Seconds: <input type="text" min={0} max={30} value={settings.rainOutSpeed}
+                <span className="mb-2 block">Seconds: <input type="number" min={0} max={30} value={rainOutSpeedInput}
                   className="max-w-12 rounded-2xl border border-zinc-300 px-2 py-1.5 text-right text-zinc-300 focus:font-extrabold"
-                  onChange={(event) =>
+                  onChange={(event) => setRainOutSpeedInput(event.target.value)}
+                  onBlur={() => {
+                    const nextValue = Number(rainOutSpeedInput);
+                    const normalizedValue = normalizeRainOutSpeed(nextValue);
+                    setRainOutSpeedInput(String(normalizedValue));
                     setSettings((current) => ({
                       ...current,
-                      rainOutSpeed: Number(event.target.value),
-                    }))}
+                      rainOutSpeed: normalizedValue,
+                    }));
+                  }}
                 /></span>
                 <input
                   type="range"

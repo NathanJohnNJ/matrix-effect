@@ -3,8 +3,8 @@ import Image from 'next/image';
 
 const effects = [
   {
-    href: '/',
-    title: 'ASCII Art',
+    href: '/ascii-generator',
+    title: 'ASCII Generator',
     description: 'Type a phrase and shape the rain into ASCII art.',
     gif: '/matrix.gif',
   },

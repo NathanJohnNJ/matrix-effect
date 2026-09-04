@@ -1,17 +1,23 @@
 'use client';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import React, { useMemo } from 'react';
 import { clsx } from 'clsx';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
-export default function NavBar(props: React.ComponentProps<any>){
-  const { headerVisible } = props;
+type NavBarProps = {
+  headerVisible: boolean;
+  onReset?: () => void;
+};
+
+export default function NavBar({ headerVisible, onReset }: NavBarProps){
   const pathName = usePathname();
 
   const homeNavigation = useMemo(
     () => [
-      { href: '/', label: 'Home' },
+      { href: '/', label: 'Dashboard' },
       { href: '/rain', label: 'Rain' },
-      { href: '/dashboard', label: 'Dashboard' },
+      { href: '/ascii-generator', label: 'ASCII Generator' },
       { href: '/settings', label: 'Settings' },
     ],
     [],
@@ -26,7 +32,7 @@ export default function NavBar(props: React.ComponentProps<any>){
     }`}
   >
     {homeNavigation.map((item) => (
-      <a
+        <Link
         key={item.label}
         href={item.href}
         className={clsx("rounded-lg px-2 py-1 text-xs uppercase tracking-[0.2em] text-green-200 transition hover:text-white", {
@@ -34,8 +40,19 @@ export default function NavBar(props: React.ComponentProps<any>){
         })}
       >
         {item.label}
-      </a>
+        </Link>
     ))}
+    {onReset && (
+      <button
+        type="button"
+        aria-label="Reset animation"
+        title="Reset animation"
+        onClick={onReset}
+        className="rounded-lg p-1 text-green-200 transition hover:text-white"
+      >
+        <ArrowPathIcon className="h-4 w-4" />
+      </button>
+    )}
   </nav>
   )
 }

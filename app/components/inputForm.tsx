@@ -6,6 +6,7 @@ import { TrashIcon } from '@heroicons/react/24/outline';
 type InputFormProps = {
   visible: boolean;
   value: string;
+  initialAdditionalValues?: string[];
   setVisible: (value: boolean) => void;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
@@ -17,6 +18,7 @@ export default function InputForm({
   visible,
   setVisible,
   value,
+  initialAdditionalValues = [],
   onChange,
   onSubmit,
   onInteractionStart,
@@ -24,7 +26,7 @@ export default function InputForm({
 }: InputFormProps) {
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
-  const [additionalValues, setAdditionalValues] = useState<string[]>([]);
+  const [additionalValues, setAdditionalValues] = useState<string[]>(initialAdditionalValues);
 
   const endInteractionIfInactive = () => {
     if (!isHoveredRef.current && !isFocusedRef.current) {

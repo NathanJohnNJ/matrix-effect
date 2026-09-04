@@ -11,6 +11,8 @@ import {
   beginStaticArtRainOut,
   isStaticArtGone,
   normalizeColumnWidth,
+  normalizeRainOutSpeed,
+  type MatrixSettings,
   type StaticArt,
 } from '../actions';
 import { useSettings } from '../providers';
@@ -18,13 +20,22 @@ import { useSettings } from '../providers';
 type MatrixCanvasProps = {
   showInput?: boolean;
   showStaticArt?: boolean;
+  initialText?: string;
+  settingsOverride?: Partial<MatrixSettings>;
+  onReset?: () => void;
 };
 
 export default function MatrixCanvas({
   showInput = true,
   showStaticArt = true,
+  initialText = 'matrix',
+  settingsOverride,
+  onReset,
 }: MatrixCanvasProps) {
-  const { settings } = useSettings();
+  const { settings, isLoaded } = useSettings();
+  const effectiveSettings = { ...settings, ...settingsOverride };
+  const settingsRef = useRef(effectiveSettings);
+  const initialLines = initialText.split('\n');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const effectRef = useRef<Effect | null>(null);
   const staticArtRef = useRef<StaticArt | null>(null);
@@ -35,11 +46,13 @@ export default function MatrixCanvas({
   const hideNavTimerRef = useRef<number | null>(null);
   const hideInputTimerRef = useRef<number | null>(null);
   const rainOutTimerRef = useRef(0);
-  const [inputValue, setInputValue] = useState('matrix');
-  const [staticText, setStaticText] = useState('matrix');
+  const [inputValue, setInputValue] = useState(initialLines[0] ?? 'matrix');
+  const [staticText, setStaticText] = useState(initialText);
   const [inputVisible, setInputVisible] = useState(false);
   const [inputInteractionActive, setInputInteractionActive] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(false);
+
+  settingsRef.current = effectiveSettings;
 
   const handleInputInteractionStart = () => {
     setInputInteractionActive(true);
@@ -55,17 +68,17 @@ export default function MatrixCanvas({
     if (hideInputTimerRef.current) {
       window.clearTimeout(hideInputTimerRef.current);
     }
-    if (settings.hideInput) {
+    if (effectiveSettings.hideInput) {
       hideInputTimerRef.current = window.setTimeout(() => {
         setInputVisible(false);
-      }, settings.inputHideSpeed * 1000);
+      }, effectiveSettings.inputHideSpeed * 1000);
     }
   };
 
   useEffect(() => {
     const handlePointerMove = (event: MouseEvent) => {
       
-      if(settings.hideHeader === true){
+      if(effectiveSettings.hideNav === true){
         const nearTopEdge = event.clientY <= window.innerHeight * 0.2;
         setHeaderVisible(nearTopEdge);
         if (hideNavTimerRef.current) {
@@ -73,18 +86,18 @@ export default function MatrixCanvas({
         }
         hideNavTimerRef.current = window.setTimeout(() => {
           setHeaderVisible(false);
-        }, settings.navHideSpeed*1000);
+        }, effectiveSettings.navHideSpeed*1000);
       } else {
         setHeaderVisible(true);
       }
-      if (showInput && !inputInteractionActive && settings.hideInput) {
+      if (showInput && !inputInteractionActive && effectiveSettings.hideInput) {
         setInputVisible(true);
         if (hideInputTimerRef.current) {
           window.clearTimeout(hideInputTimerRef.current);
         }
         hideInputTimerRef.current = window.setTimeout(() => {
           setInputVisible(false);
-        }, settings.inputHideSpeed*1000);
+        }, effectiveSettings.inputHideSpeed*1000);
       } else if (showInput && !inputInteractionActive) {
         setInputVisible(true);
       }
@@ -102,9 +115,13 @@ export default function MatrixCanvas({
         window.clearTimeout(hideInputTimerRef.current);
       }
     };
-  }, [inputInteractionActive, settings, showInput]);
+  }, [effectiveSettings, inputInteractionActive, showInput]);
 
   useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) {
       return;
@@ -133,16 +150,17 @@ export default function MatrixCanvas({
     };
 
     const logicalSize = syncCanvasSize();
-    const columnWidth = normalizeColumnWidth(settings.columnWidth);
+    const initialSettings = settingsRef.current;
+    const columnWidth = normalizeColumnWidth(initialSettings.columnWidth);
     const currentEffect = new Effect(logicalSize.width, logicalSize.height, columnWidth);
     effectRef.current = currentEffect;
     gradientRef.current = createGradient(
       ctx,
       logicalSize.width,
       logicalSize.height,
-      settings.gradientColors,
-      settings.gradientAngle,
-      settings.gradientStops,
+      initialSettings.gradientColors,
+      initialSettings.gradientAngle,
+      initialSettings.gradientStops,
     );
     staticArtRef.current = showStaticArt
       ? createStaticArt({
@@ -163,9 +181,9 @@ export default function MatrixCanvas({
         ctx,
         width,
         height,
-        settings.gradientColors,
-        settings.gradientAngle,
-        settings.gradientStops,
+        settingsRef.current.gradientColors,
+        settingsRef.current.gradientAngle,
+        settingsRef.current.gradientStops,
       );
       staticArtRef.current = showStaticArt
         ? createStaticArt({
@@ -195,8 +213,26 @@ export default function MatrixCanvas({
 
       const deltaTime = timeStamp - lastTimeRef.current;
       lastTimeRef.current = timeStamp;
-      const fps = settings.speed;
+      const currentSettings = settingsRef.current;
+      const fps = currentSettings.speed;
       const nextFrame = 1000 / fps;
+      const currentArt = staticArtRef.current;
+      const wordComplete =
+        currentArt !== null &&
+        currentArt.phase === 'in' &&
+        currentArt.cells.length > 0 &&
+        currentArt.cells.every((cell) => cell.settled);
+
+      if (currentArt && wordComplete && currentSettings.rainOut) {
+        rainOutTimerRef.current += deltaTime;
+        const rainOutSpeed = normalizeRainOutSpeed(currentSettings.rainOutSpeed);
+        if (rainOutTimerRef.current >= rainOutSpeed * 1000) {
+          beginStaticArtRainOut(currentArt);
+          rainOutTimerRef.current = 0;
+        }
+      } else if (!wordComplete) {
+        rainOutTimerRef.current = 0;
+      }
 
       if (timerRef.current > nextFrame) {
         const logicalWidth = currentCanvas.width / (window.devicePixelRatio || 1);
@@ -210,24 +246,8 @@ export default function MatrixCanvas({
         const occupiedColumns = staticArtRef.current
           ? staticArtRef.current.occupiedColumns
           : null;
-        const wordComplete =
-          staticArtRef.current !== null &&
-          staticArtRef.current.phase === 'in' &&
-          staticArtRef.current.cells.length > 0 &&
-          staticArtRef.current.cells.every((cell) => cell.settled);
-        const currentArt = staticArtRef.current;
         const reducedColumns = wordComplete ? null : occupiedColumns;
         const dimColumns = wordComplete ? occupiedColumns : null;
-
-        if (currentArt && wordComplete && settings.rainOut) {
-          rainOutTimerRef.current += deltaTime;
-          if (rainOutTimerRef.current >= settings.rainOutSpeed * 1000) {
-            beginStaticArtRainOut(currentArt);
-            rainOutTimerRef.current = 0;
-          }
-        } else if (!wordComplete) {
-          rainOutTimerRef.current = 0;
-        }
 
         currentEffect.symbols.forEach((symbol) =>
           symbol.draw(currentContext, reducedColumns, dimColumns),
@@ -235,7 +255,7 @@ export default function MatrixCanvas({
         renderStaticText(currentContext, currentArt, gradientRef.current);
 
         if (currentArt && isStaticArtGone(currentArt)) {
-          if (settings.loopAnimation && settings.rainOut) {
+          if (currentSettings.loopAnimation && currentSettings.rainOut) {
             staticArtRef.current = createStaticArt({
               text: staticText,
               effect: currentEffect,
@@ -264,26 +284,37 @@ export default function MatrixCanvas({
       }
     };
   }, [
-    settings.columnWidth,
-    settings.gradientAngle,
-    settings.gradientColors,
-    settings.gradientStops,
-    settings.loopAnimation,
-    settings.rainOut,
-    settings.rainOutSpeed,
-    settings.speed,
+    isLoaded,
     showStaticArt,
     staticText,
   ]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) {
+      return;
+    }
+
+    gradientRef.current = createGradient(
+      context,
+      canvas.width / (window.devicePixelRatio || 1),
+      canvas.height / (window.devicePixelRatio || 1),
+      effectiveSettings.gradientColors,
+      effectiveSettings.gradientAngle,
+      effectiveSettings.gradientStops,
+    );
+  }, [settings.gradientAngle, settings.gradientColors, settings.gradientStops]);
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black">
-      <NavBar headerVisible={headerVisible} />
+      <NavBar headerVisible={headerVisible} onReset={onReset} />
       {showInput && (
         <InputForm
           visible={inputVisible}
           setVisible={setInputVisible}
           value={inputValue}
+          initialAdditionalValues={initialLines.slice(1)}
           onChange={setInputValue}
           onInteractionStart={handleInputInteractionStart}
           onInteractionEnd={handleInputInteractionEnd}
