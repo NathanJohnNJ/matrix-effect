@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MATRIX EFFECT - RAINING CODE
 
-## Getting Started
+Matrix Effect is an interactive Matrix-style animation that displays randomly falling glyphs. Choose an effect from the dashboard, customise the animation, and generate ASCII art from one or more lines of text.
 
-First, run the development server:
+## Effects
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Rain** displays an uninterrupted stream of falling glyphs.
+- **ASCII Generator** lets you enter text and builds it into large ASCII art while the rain continues around it.
+
+The animation continues while settings are edited. Settings can be opened over the current effect and closed to return to the same route. Use the reset control in the navigation bar to restart the current animation manually.
+
+## Customisable settings
+
+The settings page includes controls for:
+
+- Gradient colours and colour-stop positions
+- Gradient angle
+- Animation speed
+- ASCII column width
+- Automatic hiding and timing for the navigation bar and text input
+- Rain-out, which releases completed ASCII art back into the falling rain
+- Loop animation, which rebuilds the ASCII art after it has rained out
+
+Changing the ASCII column width restarts the animation because it changes the size of the generated characters. Other settings update the current animation without restarting it.
+
+## Multi-line ASCII art
+
+The ASCII Generator supports up to three input lines. Each line is rendered as a separate row of ASCII art. Empty lines are ignored, and text is displayed in uppercase.
+
+## URL parameters
+
+You can link directly to the ASCII Generator with the `string`, `string2`, and `string3` search parameters. URL-encode spaces and other special characters. URL settings override saved settings, which override the application defaults when no value is supplied.
+
+For example:
+
+```text
+https://rain.njtd.xyz/ascii-generator?string=not%20just&string2=the&string3=design
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This opens the ASCII Generator with three editable inputs and renders:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+![Example output of ASCII Generator](./public/njtd.png)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+With no parameters, the generator defaults to `MATRIX`. One or two parameters can also be supplied; they become one or two rendered lines.
 
-## Learn More
+## URL settings
 
-To learn more about Next.js, take a look at the following resources:
+The following search parameters customise the animation:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `hideNav=true|false`
+- `navHideSpeed=<seconds>`
+- `hideInput=true|false`
+- `inputHideSpeed=<seconds>`
+- `rainOut=true|false`
+- `loopAnimation=true|false`
+- `rainOutSpeed=<seconds>`
+- `gradientAngle=<degrees>`
+- `columnWidth=<number>`
+- `speed=<frames per second>`
+- `gradient=<hex>-<percentage>` repeated once per colour
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Gradient values must contain 6 or 8 hexadecimal digits, optionally prefixed with `#`, followed optionally by a dash and a 1-, 2-, or 3-digit stop percentage from `0` to `100`. Six digits specify RGB; eight digits specify RGBA. When the percentage is omitted, all supplied colours are evenly spaced.
 
-## Deploy on Vercel
+For example:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+/ascii-generator?string=hello&rainOut=true&rainOutSpeed=5&hideNav=false&gradient=%2300ff00-0&gradient=00ffff-50&gradient=ffffff-100&columnWidth=4&speed=20
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Routes
+
+- `/` opens the dashboard
+- `/ascii-generator` opens the ASCII Generator
+- `/rain` opens the falling-rain effect
+- `/settings` opens settings over the current effect
+
+This is a [Next.js](https://nextjs.org) project and was bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).

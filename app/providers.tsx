@@ -6,11 +6,13 @@ import {
   MATRIX_SETTINGS_STORAGE_KEY,
   normalizeColumnWidth,
   normalizeGradientAngle,
+  normalizeRainOutSpeed,
   type MatrixSettings,
 } from './actions';
 
 type SettingsContextValue = {
   settings: MatrixSettings;
+  isLoaded: boolean;
   setSettings: Dispatch<SetStateAction<MatrixSettings>>;
 };
 
@@ -32,12 +34,16 @@ export default function Providers({ children }: { children: ReactNode }) {
         setSettings({
           ...DEFAULT_MATRIX_SETTINGS,
           ...parsed,
+          hideNav: parsed.hideNav ?? DEFAULT_MATRIX_SETTINGS.hideNav,
           gradientColors,
           columnWidth: normalizeColumnWidth(
             parsed.columnWidth ?? DEFAULT_MATRIX_SETTINGS.columnWidth,
           ),
           gradientAngle: normalizeGradientAngle(
             parsed.gradientAngle ?? DEFAULT_MATRIX_SETTINGS.gradientAngle,
+          ),
+          rainOutSpeed: normalizeRainOutSpeed(
+            parsed.rainOutSpeed ?? DEFAULT_MATRIX_SETTINGS.rainOutSpeed,
           ),
           gradientStops: parsed.gradientStops && parsed.gradientColors
             && parsed.gradientStops.length === parsed.gradientColors.length
@@ -59,7 +65,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   }, [isLoaded, settings]);
 
   return (
-    <SettingsContext.Provider value={{ settings, setSettings }}>
+    <SettingsContext.Provider value={{ settings, isLoaded, setSettings }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -7,7 +7,7 @@ export type MatrixSettings = {
   inputHideSpeed: number;
   navHideSpeed: number;
   rainOutSpeed: number;
-  hideHeader: boolean;
+  hideNav: boolean;
   hideInput: boolean;
   rainOut: boolean;
   loopAnimation: boolean;
@@ -21,6 +21,67 @@ export function normalizeGradientAngle(value: number) {
 
 export function normalizeColumnWidth(value: number) {
   return Number.isFinite(value) ? Math.min(8, Math.max(1, Math.round(value))) : 1;
+}
+
+export function normalizeRainOutSpeed(value: number) {
+  return Number.isFinite(value) ? Math.min(30, Math.max(0, value)) : DEFAULT_MATRIX_SETTINGS.rainOutSpeed;
+}
+
+export function parseSettingsSearchParams(searchParams: URLSearchParams): Partial<MatrixSettings> {
+  const settings: Partial<MatrixSettings> = {};
+  type NumericSetting = 'navHideSpeed' | 'inputHideSpeed' | 'rainOutSpeed' | 'gradientAngle' | 'columnWidth' | 'speed';
+  type BooleanSetting = 'hideNav' | 'hideInput' | 'rainOut' | 'loopAnimation';
+  const readNumber = (name: NumericSetting, normalize: (value: number) => number) => {
+    const value = searchParams.get(name);
+    if (value === null || value.trim() === '') {
+      return;
+    }
+
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      settings[name] = normalize(parsed);
+    }
+  };
+  const readBoolean = (name: BooleanSetting) => {
+    const value = searchParams.get(name);
+    if (value === 'true' || value === 'false') {
+      settings[name] = value === 'true';
+    }
+  };
+
+  readNumber('navHideSpeed', (value) => Math.min(30, Math.max(0, value)));
+  readNumber('inputHideSpeed', (value) => Math.min(30, Math.max(0, value)));
+  readNumber('rainOutSpeed', normalizeRainOutSpeed);
+  readNumber('gradientAngle', normalizeGradientAngle);
+  readNumber('columnWidth', normalizeColumnWidth);
+  readNumber('speed', (value) => Math.min(30, Math.max(4, value)));
+  readBoolean('hideNav');
+  readBoolean('hideInput');
+  readBoolean('rainOut');
+  readBoolean('loopAnimation');
+
+  const gradientValues = searchParams.getAll('gradient');
+  const gradients = gradientValues.flatMap((value) => {
+    const match = value.match(/^#?([\da-f]{6}|[\da-f]{8})(?:-(\d{1,3}))?$/i);
+    if (!match) {
+      return [];
+    }
+
+    const percentage = match[2] === undefined ? undefined : Number(match[2]);
+    return percentage === undefined || percentage <= 100
+      ? [{ color: `#${match[1]}`, percentage }]
+      : [];
+  });
+
+  if (gradients.length > 0) {
+    const evenlySpacedStops = createEvenlySpacedStops(gradients.length);
+    settings.gradientColors = gradients.map(({ color }) => color);
+    settings.gradientStops = gradients.map(({ percentage }, index) =>
+      percentage === undefined ? evenlySpacedStops[index] : percentage / 100,
+    );
+  }
+
+  return settings;
 }
 
 export function createEvenlySpacedStops(colorCount: number) {
@@ -39,7 +100,7 @@ export const DEFAULT_MATRIX_SETTINGS: MatrixSettings = {
   inputHideSpeed: 3,
   navHideSpeed: 3,
   rainOutSpeed: 3,
-  hideHeader: true,
+  hideNav: true,
   hideInput: true,
   rainOut: false,
   loopAnimation: false,
@@ -331,7 +392,6 @@ export function createStaticArt({
   });
 
   const cellsByColumn = new Map<number, StaticCell[]>();
-  let animationDuration = 0;
   cells.forEach((cell) => {
     const column = Math.round((cell.x * cell.fontSize) / effect.fontSize);
     if (!cellsByColumn.has(column)) {
@@ -340,19 +400,37 @@ export function createStaticArt({
     cellsByColumn.get(column)?.push(cell);
   });
 
+  const columnDurations = new Map<number, number>();
+  let baseAnimationDuration = 0;
   cellsByColumn.forEach((columnCells) => {
     columnCells.sort(() => Math.random() - 0.5);
     columnCells[0].active = true;
-    columnCells[0].startFrame = Math.floor(Math.random() * 10);
-    let columnDuration = columnCells[0].startFrame + columnCells[0].targetY + 1;
+    let columnDuration = columnCells[0].targetY + 1;
     columnCells.forEach((cell, cellIndex) => {
       cell.nextCell = columnCells[cellIndex + 1] || null;
       if (cellIndex > 0) {
         columnDuration += cell.targetY + 1;
       }
     });
-    animationDuration = Math.max(animationDuration, columnDuration);
+    columnDurations.set(
+      Math.round((columnCells[0].x * columnCells[0].fontSize) / effect.fontSize),
+      columnDuration,
+    );
+    baseAnimationDuration = Math.max(baseAnimationDuration, columnDuration);
   });
+
+  const maximumStartDelay = Math.floor(baseAnimationDuration * 0.75);
+  columnDurations.forEach((columnDuration, column) => {
+    const columnCells = cellsByColumn.get(column);
+    if (!columnCells) {
+      return;
+    }
+
+    columnCells[0].startFrame = Math.floor(Math.random() * (maximumStartDelay + 1));
+    columnDurations.set(column, columnDuration + (columnCells[0].startFrame ?? 0));
+  });
+
+  const animationDuration = Math.max(...columnDurations.values(), 0);
 
   return {
     cells,
@@ -373,15 +451,13 @@ export function beginStaticArtRainOut(staticArt: StaticArt) {
     ...staticArt.cells.map((cell) => Math.ceil(staticArt.canvasHeight / cell.fontSize) - cell.y),
   );
   const releaseWindow = Math.max(0, staticArt.animationDuration - maximumFallFrames);
+  const randomReleaseWindow = Math.min(
+    releaseWindow,
+    Math.floor(staticArt.animationDuration * 0.75),
+  );
 
-  shuffledCells.forEach((cell, index) => {
-    const evenlySpacedFrame = Math.floor(
-      (index / Math.max(1, shuffledCells.length - 1)) * releaseWindow,
-    );
-    cell.outStartFrame = Math.min(
-      releaseWindow,
-      evenlySpacedFrame + Math.floor(Math.random() * 4),
-    );
+  shuffledCells.forEach((cell) => {
+    cell.outStartFrame = Math.floor(Math.random() * (randomReleaseWindow + 1));
     cell.removed = false;
   });
 }

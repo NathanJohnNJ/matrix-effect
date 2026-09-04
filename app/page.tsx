@@ -1,5 +1,5 @@
-import MatrixCanvas from './components/matrixCanvas';
+import DashboardPage from './dashboard/page';
 
 export default function Home() {
-  return <MatrixCanvas />;
+  return <DashboardPage />;
 }
