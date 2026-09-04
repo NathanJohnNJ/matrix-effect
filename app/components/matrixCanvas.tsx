@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import InputForm from './inputForm';
 import NavBar from './navbar';
 import {
@@ -33,7 +33,10 @@ export default function MatrixCanvas({
   onReset,
 }: MatrixCanvasProps) {
   const { settings, isLoaded } = useSettings();
-  const effectiveSettings = { ...settings, ...settingsOverride };
+  const effectiveSettings = useMemo(
+    () => ({ ...settings, ...settingsOverride }),
+    [settings, settingsOverride],
+  );
   const settingsRef = useRef(effectiveSettings);
   const initialLines = initialText.split('\n');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -304,7 +307,11 @@ export default function MatrixCanvas({
       effectiveSettings.gradientAngle,
       effectiveSettings.gradientStops,
     );
-  }, [settings.gradientAngle, settings.gradientColors, settings.gradientStops]);
+  }, [
+    effectiveSettings.gradientAngle,
+    effectiveSettings.gradientColors,
+    effectiveSettings.gradientStops,
+  ]);
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-black">
