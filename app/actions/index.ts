@@ -124,6 +124,8 @@ export type StaticArt = {
   cells: StaticCell[];
   occupiedColumns: Set<number>;
   frame: number;
+  settledCount: number;
+  removedCount: number;
   canvasHeight: number;
   phase: 'in' | 'out' | 'gone';
   animationDuration: number;
@@ -436,6 +438,8 @@ export function createStaticArt({
     cells,
     occupiedColumns,
     frame: 0,
+    settledCount: 0,
+    removedCount: 0,
     canvasHeight,
     phase: 'in',
     animationDuration,
@@ -445,6 +449,7 @@ export function createStaticArt({
 export function beginStaticArtRainOut(staticArt: StaticArt) {
   staticArt.phase = 'out';
   staticArt.frame = 0;
+  staticArt.removedCount = 0;
 
   const shuffledCells = [...staticArt.cells].sort(() => Math.random() - 0.5);
   const maximumFallFrames = Math.max(
@@ -463,7 +468,7 @@ export function beginStaticArtRainOut(staticArt: StaticArt) {
 }
 
 export function isStaticArtGone(staticArt: StaticArt) {
-  return staticArt.phase === 'out' && staticArt.cells.every((cell) => cell.removed);
+  return staticArt.phase === 'out' && staticArt.removedCount >= staticArt.cells.length;
 }
 
 export function renderStaticText(
@@ -478,6 +483,7 @@ export function renderStaticText(
   context.save();
   context.fillStyle = gradient;
   context.textAlign = 'center';
+  context.font = `${staticArt.cells[0].fontSize}px monospace`;
   staticArt.frame += 1;
 
   staticArt.cells.forEach((cell) => {
@@ -495,11 +501,11 @@ export function renderStaticText(
       cell.y += 1;
       if (cell.y * cell.fontSize > staticArt.canvasHeight) {
         cell.removed = true;
+        staticArt.removedCount += 1;
         return;
       }
 
       cell.character = characters.charAt(Math.floor(Math.random() * characters.length));
-      context.font = `${cell.fontSize}px monospace`;
       context.fillText(cell.character, cell.x * cell.fontSize, (cell.y + 1) * cell.fontSize);
       return;
     }
@@ -513,6 +519,7 @@ export function renderStaticText(
       if (cell.y >= cell.targetY) {
         cell.y = cell.targetY;
         cell.settled = true;
+        staticArt.settledCount += 1;
         cell.active = false;
         if (cell.nextCell) {
           cell.nextCell.active = true;
@@ -524,7 +531,6 @@ export function renderStaticText(
       if (!cell.settled) {
         cell.character = characters.charAt(Math.floor(Math.random() * characters.length));
       }
-      context.font = `${cell.fontSize}px monospace`;
       context.fillText(cell.character, cell.x * cell.fontSize, (cell.y + 1) * cell.fontSize);
     }
   });
