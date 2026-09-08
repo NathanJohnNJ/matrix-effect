@@ -1,7 +1,7 @@
 'use client';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { clsx } from 'clsx';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 

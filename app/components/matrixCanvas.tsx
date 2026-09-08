@@ -138,7 +138,7 @@ export default function MatrixCanvas({
     const syncCanvasSize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
@@ -201,30 +201,31 @@ export default function MatrixCanvas({
 
     const handleResize = () => resizeCanvas();
     window.addEventListener('resize', handleResize);
+    const dpr = logicalSize.dpr;
+    const context = ctx;
 
     const animate = (timeStamp: number) => {
       const currentEffect = effectRef.current;
-      const currentCanvas = canvasRef.current;
-      if (!currentEffect || !currentCanvas) {
+      if (!currentEffect || !gradientRef.current) {
         return;
       }
 
-      const currentContext = currentCanvas.getContext('2d');
-      if (!currentContext || !gradientRef.current) {
-        return;
+      if (lastTimeRef.current === 0) {
+        lastTimeRef.current = timeStamp;
       }
 
       const deltaTime = timeStamp - lastTimeRef.current;
       lastTimeRef.current = timeStamp;
       const currentSettings = settingsRef.current;
       const fps = currentSettings.speed;
-      const nextFrame = 1000 / fps;
+      const frameInterval = 1000 / fps;
+      timerRef.current += Math.min(deltaTime, 250);
       const currentArt = staticArtRef.current;
       const wordComplete =
         currentArt !== null &&
         currentArt.phase === 'in' &&
         currentArt.cells.length > 0 &&
-        currentArt.cells.every((cell) => cell.settled);
+        currentArt.settledCount >= currentArt.cells.length;
 
       if (currentArt && wordComplete && currentSettings.rainOut) {
         rainOutTimerRef.current += deltaTime;
@@ -237,14 +238,14 @@ export default function MatrixCanvas({
         rainOutTimerRef.current = 0;
       }
 
-      if (timerRef.current > nextFrame) {
-        const logicalWidth = currentCanvas.width / (window.devicePixelRatio || 1);
-        const logicalHeight = currentCanvas.height / (window.devicePixelRatio || 1);
+      if (timerRef.current >= frameInterval) {
+        const logicalWidth = canvas.width / dpr;
+        const logicalHeight = canvas.height / dpr;
 
-        currentContext.fillStyle = 'rgba(0, 0, 0, 0.09)';
-        currentContext.fillRect(0, 0, logicalWidth, logicalHeight);
-        currentContext.fillStyle = gradientRef.current;
-        currentContext.font = `${currentEffect.fontSize}px monospace`;
+        context.fillStyle = 'rgba(0, 0, 0, 0.09)';
+        context.fillRect(0, 0, logicalWidth, logicalHeight);
+        context.fillStyle = gradientRef.current;
+        context.font = `${currentEffect.fontSize}px monospace`;
 
         const occupiedColumns = staticArtRef.current
           ? staticArtRef.current.occupiedColumns
@@ -253,9 +254,9 @@ export default function MatrixCanvas({
         const dimColumns = wordComplete ? occupiedColumns : null;
 
         currentEffect.symbols.forEach((symbol) =>
-          symbol.draw(currentContext, reducedColumns, dimColumns),
+          symbol.draw(context, reducedColumns, dimColumns),
         );
-        renderStaticText(currentContext, currentArt, gradientRef.current);
+        renderStaticText(context, currentArt, gradientRef.current);
 
         if (currentArt && isStaticArtGone(currentArt)) {
           if (currentSettings.loopAnimation && currentSettings.rainOut) {
@@ -270,9 +271,7 @@ export default function MatrixCanvas({
             currentArt.phase = 'gone';
           }
         }
-        timerRef.current = 0;
-      } else {
-        timerRef.current += deltaTime;
+        timerRef.current %= frameInterval;
       }
 
       rafRef.current = requestAnimationFrame(animate);
