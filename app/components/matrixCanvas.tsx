@@ -43,6 +43,7 @@ export default function MatrixCanvas({
   const effectRef = useRef<Effect | null>(null);
   const staticArtRef = useRef<StaticArt | null>(null);
   const gradientRef = useRef<CanvasGradient | null>(null);
+  const logicalSizeRef = useRef({ width: 0, height: 0, dpr: 1 });
   const lastTimeRef = useRef(0);
   const timerRef = useRef(0);
   const rafRef = useRef<number | null>(null);
@@ -149,7 +150,8 @@ export default function MatrixCanvas({
       ctx.scale(dpr, dpr);
       ctx.imageSmoothingEnabled = false;
 
-      return { width, height, dpr };
+      logicalSizeRef.current = { width, height, dpr };
+      return logicalSizeRef.current;
     };
 
     const logicalSize = syncCanvasSize();
@@ -201,7 +203,6 @@ export default function MatrixCanvas({
 
     const handleResize = () => resizeCanvas();
     window.addEventListener('resize', handleResize);
-    const dpr = logicalSize.dpr;
     const context = ctx;
 
     const animate = (timeStamp: number) => {
@@ -239,8 +240,7 @@ export default function MatrixCanvas({
       }
 
       if (timerRef.current >= frameInterval) {
-        const logicalWidth = canvas.width / dpr;
-        const logicalHeight = canvas.height / dpr;
+        const { width: logicalWidth, height: logicalHeight } = logicalSizeRef.current;
 
         context.fillStyle = 'rgba(0, 0, 0, 0.09)';
         context.fillRect(0, 0, logicalWidth, logicalHeight);
@@ -298,10 +298,11 @@ export default function MatrixCanvas({
       return;
     }
 
+    const { width, height } = logicalSizeRef.current;
     gradientRef.current = createGradient(
       context,
-      canvas.width / (window.devicePixelRatio || 1),
-      canvas.height / (window.devicePixelRatio || 1),
+      width,
+      height,
       effectiveSettings.gradientColors,
       effectiveSettings.gradientAngle,
       effectiveSettings.gradientStops,
